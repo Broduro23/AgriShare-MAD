@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.semesterproject.viewmodels.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.semesterproject.pages.SuccessScreen
 
 // Keep the activity class if you want (not required for navigation but harmless)
 class SignUpActivity : ComponentActivity() {
@@ -67,172 +68,183 @@ fun SignUpScreen(
     val isSuccess by viewModel.isSignUpSuccess
 
     // Handle Success Navigation
-    LaunchedEffect(isSuccess) {
+    /*LaunchedEffect(isSuccess) {
         if (isSuccess) {
             onSuccess() // Navigate to home/login
             viewModel.resetState()
         }
+    }*/
+    if(isSuccess){
+        SuccessScreen(
+            title = "Account Created!",
+            message = "You will be redirected to the homepage in 10 seconds...",
+            buttonText = "Go to Home",
+            autoRedirectMillis = 10000, // 10 seconds
+            onDoneClick = {
+                onSuccess() // This triggers the navigation
+                viewModel.resetState() // Reset the viewmodel state
+            }
+        )
     }
+    else {
 
-
-
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(Color.White)
         ) {
-            Spacer(modifier = Modifier.height(60.dp))
-
-            // Logo Section (this resolves because LogoSection is in same package)
-            LogoSection()
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Title
-            Text(
-                text = "To Create an Account, Fill the Form Below",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF2D3E2E),
-                textAlign = TextAlign.Center,
-                lineHeight = 24.sp,
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Form Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFE8F5E9)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
+                Spacer(modifier = Modifier.height(60.dp))
+
+                // Logo Section (this resolves because LogoSection is in same package)
+                LogoSection()
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Title
+                Text(
+                    text = "To Create an Account, Fill the Form Below",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2D3E2E),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 24.sp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp)
+                        .padding(horizontal = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Form Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFE8F5E9)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    // First Name
-                    InputField(
-                        label = "First Name",
-                        value = firstName,
-                        onValueChange = { firstName = it },
-                        keyboardType = KeyboardType.Text
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Last Name
-                    InputField(
-                        label = "Last Name",
-                        value = lastName,
-                        onValueChange = { lastName = it },
-                        keyboardType = KeyboardType.Text
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Email
-                    InputField(
-                        label = "Email",
-                        value = email,
-                        onValueChange = { email = it },
-                        keyboardType = KeyboardType.Email
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Phone Number
-                    InputField(
-                        label = "Phone Number",
-                        value = phoneNumber,
-                        onValueChange = { phoneNumber = it },
-                        keyboardType = KeyboardType.Phone
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Password
-                    PasswordInputField(
-                        label = "Password",
-                        value = password,
-                        onValueChange = { password = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Confirm Password
-                    PasswordInputField(
-                        label = "Confirm Password",
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Sign Up Button (call both onSignUpClick and onSuccess)
-                    Button(
-                        onClick = {
-                            // Call the ViewModel function with all current state values
-                            viewModel.signUp(
-                                firstName = firstName,
-                                lastName = lastName,
-                                email = email,
-                                phoneNumber = phoneNumber,
-                                password = password,
-                                confirmPassword = confirmPassword
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF7FB89A)
-                        ),
-                        shape = RoundedCornerShape(24.dp),
+                    Column(
                         modifier = Modifier
-                            .height(48.dp)
-                            .width(120.dp)
+                            .fillMaxWidth()
+                            .padding(24.dp)
                     ) {
-                        Text(
-                            text = "Sign Up",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
+                        // First Name
+                        InputField(
+                            label = "First Name",
+                            value = firstName,
+                            onValueChange = { firstName = it },
+                            keyboardType = KeyboardType.Text
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Last Name
+                        InputField(
+                            label = "Last Name",
+                            value = lastName,
+                            onValueChange = { lastName = it },
+                            keyboardType = KeyboardType.Text
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Email
+                        InputField(
+                            label = "Email",
+                            value = email,
+                            onValueChange = { email = it },
+                            keyboardType = KeyboardType.Email
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Phone Number
+                        InputField(
+                            label = "Phone Number",
+                            value = phoneNumber,
+                            onValueChange = { phoneNumber = it },
+                            keyboardType = KeyboardType.Phone
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Password
+                        PasswordInputField(
+                            label = "Password",
+                            value = password,
+                            onValueChange = { password = it }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Confirm Password
+                        PasswordInputField(
+                            label = "Confirm Password",
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it }
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Sign Up Button (call both onSignUpClick and onSuccess)
+                        Button(
+                            onClick = {
+                                // Call the ViewModel function with all current state values
+                                viewModel.signUp(
+                                    firstName = firstName,
+                                    lastName = lastName,
+                                    email = email,
+                                    phoneNumber = phoneNumber,
+                                    password = password,
+                                    confirmPassword = confirmPassword
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF7FB89A)
+                            ),
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier
+                                .height(48.dp)
+                                .width(120.dp)
+                        ) {
+                            Text(
+                                text = "Sign Up",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage!!,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                     }
 
-                    if (errorMessage != null) {
-                        Text(
-                            text = errorMessage!!,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
                 }
 
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Back button to go to previous screen
+                TextButton(onClick = onBackClick) {
+                    Text("Back")
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Back button to go to previous screen
-            TextButton(onClick = onBackClick) {
-                Text("Back")
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
