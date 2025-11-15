@@ -9,9 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.semesterproject.models.Users
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-// REMOVE THIS LINE: import com.google.firebase.ktx.Firebase
 
-import com.google.firebase.Firebase               // ← ADD THIS LINE
+
+import com.google.firebase.Firebase
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -38,7 +38,8 @@ class AuthViewModel : ViewModel() {
         email: String,
         phoneNumber: String,
         password: String,
-        confirmPassword: String
+        confirmPassword: String,
+        role:String
 
     ) {
         // 1. Validation
@@ -54,6 +55,10 @@ class AuthViewModel : ViewModel() {
 
         if (password.length < 6) {
             _errorMessage.value = "Password must be at least 6 characters."
+            return
+        }
+        if(role.isBlank()){
+            _errorMessage.value = "Please select a role"
             return
         }
 
@@ -74,7 +79,8 @@ class AuthViewModel : ViewModel() {
                         email = email,
                         firstname = firstName,
                         lastName = lastName,
-                        phoneNumber = phoneNumber
+                        phoneNumber = phoneNumber,
+                        role = role
 
                     )
 

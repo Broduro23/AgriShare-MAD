@@ -23,7 +23,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.semesterproject.viewmodels.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.semesterproject.pages.SuccessScreen
+import androidx.compose.material.icons.*
+import androidx.compose.foundation.*
+import androidx.compose.material.icons.filled.*
+
+
 
 // Keep the activity class if you want (not required for navigation but harmless)
 class SignUpActivity : ComponentActivity() {
@@ -60,6 +64,7 @@ fun SignUpScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var role by remember{mutableStateOf("")}
 
 
     // Observe ViewModel states
@@ -67,13 +72,7 @@ fun SignUpScreen(
     val errorMessage by viewModel.errorMessage
     val isSuccess by viewModel.isSignUpSuccess
 
-    // Handle Success Navigation
-    /*LaunchedEffect(isSuccess) {
-        if (isSuccess) {
-            onSuccess() // Navigate to home/login
-            viewModel.resetState()
-        }
-    }*/
+
     if(isSuccess){
         SuccessScreen(
             title = "Account Created!",
@@ -196,6 +195,14 @@ fun SignUpScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
+                        DropdownInputField(
+                            label = "Select Role",
+                            options = listOf("Client", "Owner", "Operator"),
+                            selectedOption = role,
+                            onOptionSelected = { role = it }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
                         // Sign Up Button (call both onSignUpClick and onSuccess)
                         Button(
                             onClick = {
@@ -206,7 +213,8 @@ fun SignUpScreen(
                                     email = email,
                                     phoneNumber = phoneNumber,
                                     password = password,
-                                    confirmPassword = confirmPassword
+                                    confirmPassword = confirmPassword,
+                                    role = role
                                 )
                             },
                             colors = ButtonDefaults.buttonColors(
@@ -248,6 +256,77 @@ fun SignUpScreen(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DropdownInputField(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF2D3E2E),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // Use ExposedDropdownMenuBox to create a dropdown
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            // This is the TextField that shows the selected value
+            OutlinedTextField(
+                value = selectedOption,
+                onValueChange = {}, // Read-only
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .menuAnchor(), // Anchor the dropdown menu to this text field
+                placeholder = { Text("Select a role") },
+                trailingIcon = {
+                    Icon(
+                        Icons.Filled.ArrowDropDown,
+                        "Dropdown arrow",
+                        Modifier.clickable { expanded = !expanded }
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedBorderColor = Color(0xFF6FA687),
+                    unfocusedBorderColor = Color(0xFFCCCCCC)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                singleLine = true
+            )
+
+            // This is the actual dropdown menu
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onOptionSelected(option)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun InputField(
