@@ -48,10 +48,25 @@ fun AppNavigation() {
         composable("signin") {
             SignInScreen(
                 onBackClick = { navController.popBackStack() },
-                onSuccess = {
-                    navController.navigate("home") {
-                        popUpTo("landing") { inclusive = false }
+                onLoginSuccess = { role->
+                    when(role){
+                        "Owner" -> {
+                            navController.navigate("home"){
+                                popUpTo(route= "landing"){inclusive = false}
+                            }
+                        }
+                        "Operator"->{
+                            navController.navigate(route= "home"){
+                                popUpTo(route = "landing"){inclusive = false}
+                            }
+                        }
+                        else->{
+                            navController.navigate("home") {
+                                popUpTo("landing") { inclusive = false }
+                            }
+                        }
                     }
+
                 }
             )
         }

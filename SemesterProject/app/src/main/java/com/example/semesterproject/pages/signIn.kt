@@ -19,6 +19,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.semesterproject.viewmodels.SigninViewModel
+
+
 
 class SignInActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,9 +30,12 @@ class SignInActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 SignInScreen(
-                    onSignInClick = { _, _ -> },
+
                     onBackClick = {},
-                    onSuccess = {}
+                    onLoginSuccess = { role ->
+                        // Handle navigation based on role here
+                        println("Logged in as: $role")
+                    }
                 )
             }
         }
@@ -37,12 +44,24 @@ class SignInActivity : ComponentActivity() {
 
 @Composable
 fun SignInScreen(
-    onSignInClick: (String, String) -> Unit = { _, _ -> },
+    viewModel: SigninViewModel = viewModel(),
+
     onBackClick: () -> Unit = {},
-    onSuccess: () -> Unit = {}
+    onLoginSuccess: (String) -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val isLoading by viewModel.isLoading
+    val errorMessage by viewModel.errorMessage
+    val isSuccess by viewModel.isSignInSuccess
+    val userRole by viewModel.userRole
+    LaunchedEffect(isSuccess, userRole) {
+        if (isSuccess && userRole != null) {
+            onLoginSuccess(userRole!!)
+            viewModel.resetState()
+        }
+    }
+
 
     Box(
         modifier = Modifier
@@ -113,9 +132,10 @@ fun SignInScreen(
                     // Sign In Button
                     Button(
                         onClick = {
-                            onSignInClick(email, password)
-                            onSuccess()
+                            viewModel.signIn(email, password)
+
                         },
+                        enabled = !isLoading,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF7FB89A)
                         ),
@@ -139,6 +159,14 @@ fun SignInScreen(
             // Back button
             TextButton(onClick = onBackClick) {
                 Text("Back")
+            }
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 16.dp),
+                    fontSize = 14.sp
+                )
             }
 
             Spacer(modifier = Modifier.weight(1f))
