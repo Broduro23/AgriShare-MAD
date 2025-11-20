@@ -2,9 +2,9 @@ package com.example.semesterproject.models
 
 data class Machine(
     val name: String = "",
-    val machinetype: String = "",
+    val machineType: String = "",
     val description: String = "",
-    val pricePerDay: String = "",
+    val pricePerDay: Double = 0.0,
     val imageUrl: String = "",
     val ownerFirstName: String = "",
     val ownerLastName: String = "",

@@ -21,9 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-
+import com.example.semesterproject.models.Machine
 // --- Data class ---
-data class Machine(
+/*data class Machine(
     val name: String = "",
     val machineType: String = "",
     val description: String = "",
@@ -33,7 +33,7 @@ data class Machine(
     val ownerLastName: String = "",
     val ownerEmail: String = "",
     val ownerPhone: String = ""
-)
+)*/
 
 // --- Main Composable ---
 @OptIn(ExperimentalMaterial3Api::class)
