@@ -1,5 +1,8 @@
 package com.example.semesterproject.pages
 
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,16 +15,38 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
+// --- Data class ---
+data class Machine(
+    val name: String = "",
+    val machineType: String = "",
+    val description: String = "",
+    val pricePerDay: Double = 0.0,
+    val imageUrl: String = "",
+    val ownerFirstName: String = "",
+    val ownerLastName: String = "",
+    val ownerEmail: String = "",
+    val ownerPhone: String = ""
+)
+
+// --- Main Composable ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMachinesScreen(
     onBackClick: () -> Unit = {},
     onSubmitSuccess: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val firestore = FirebaseFirestore.getInstance()
+    val storage = FirebaseStorage.getInstance()
+
+    // --- Form state variables ---
     var machineName by remember { mutableStateOf("") }
     var machineType by remember { mutableStateOf("") }
     var machineDescription by remember { mutableStateOf("") }
@@ -40,7 +65,6 @@ fun AddMachinesScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        // ✅ Inline logo header instead of calling LogoHeader()
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
                                 modifier = Modifier
@@ -72,11 +96,7 @@ fun AddMachinesScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color(0xFF2D5F3F)
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF2D5F3F))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
@@ -101,266 +121,111 @@ fun AddMachinesScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            Box(
+            // --- Form container ---
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFE8F5E9), shape = RoundedCornerShape(16.dp))
                     .padding(20.dp)
             ) {
-                Column {
-                    // Machine Details Section
-                    Text(
-                        text = "Machine Details",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2D3E2E),
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                // --- Input fields ---
+                OutlinedTextField(value = machineName, onValueChange = { machineName = it }, label = { Text("Machine Name") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = machineType, onValueChange = { machineType = it }, label = { Text("Machine Type") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = machineDescription, onValueChange = { machineDescription = it }, label = { Text("Machine Description") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = pricePerDay, onValueChange = { pricePerDay = it }, label = { Text("Price per Day") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = photoPath, onValueChange = { photoPath = it }, label = { Text("Photo URI") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = firstName, onValueChange = { firstName = it }, label = { Text("First Name") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Last Name") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = phoneNumber, onValueChange = { phoneNumber = it }, label = { Text("Phone Number") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Machine name",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = machineName,
-                                onValueChange = { machineName = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
+                // --- Submit Button ---
+                Button(
+                    onClick = {
+                        val name = machineName.trim()
+                        val type = machineType.trim()
+                        val desc = machineDescription.trim()
+                        val priceStr = pricePerDay.trim()
+                        val photo = photoPath.trim()
+                        val fName = firstName.trim()
+                        val lName = lastName.trim()
+                        val mail = email.trim()
+                        val phone = phoneNumber.trim()
+
+                        if (name.isEmpty() || type.isEmpty() || desc.isEmpty() ||
+                            priceStr.isEmpty() || photo.isEmpty() || fName.isEmpty() ||
+                            lName.isEmpty() || mail.isEmpty() || phone.isEmpty()
+                        ) {
+                            Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                            Log.d("AddMachine", "Validation failed: Empty fields")
+                            return@Button
                         }
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Machine type",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = machineType,
-                                onValueChange = { machineType = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Add Machine description",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = machineDescription,
-                                onValueChange = { machineDescription = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
+                        val price = priceStr.toDoubleOrNull()
+                        if (price == null) {
+                            Toast.makeText(context, "Enter a valid price", Toast.LENGTH_SHORT).show()
+                            Log.d("AddMachine", "Validation failed: Price not a number")
+                            return@Button
                         }
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Price per day",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = pricePerDay,
-                                onValueChange = { pricePerDay = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                        }
-                    }
+                        val imageRef = storage.reference.child("machine_images/${System.currentTimeMillis()}.jpg")
+                        val photoUri = Uri.parse(photo)
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Log.d("AddMachine", "Starting image upload...")
 
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Upload a photo of the machine",
-                            fontSize = 12.sp,
-                            color = Color(0xFF2D3E2E),
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        OutlinedTextField(
-                            value = photoPath,
-                            onValueChange = { photoPath = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF2D5F3F),
-                                unfocusedBorderColor = Color(0xFF9E9E9E)
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
+                        imageRef.putFile(photoUri)
+                            .continueWithTask { task ->
+                                if (!task.isSuccessful) task.exception?.let { throw it }
+                                imageRef.downloadUrl
+                            }
+                            .addOnSuccessListener { downloadUri ->
+                                Log.d("AddMachine", "Image uploaded successfully: $downloadUri")
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                                val machine = Machine(
+                                    name = name,
+                                    machineType = type,
+                                    description = desc,
+                                    pricePerDay = price,
+                                    imageUrl = downloadUri.toString(),
+                                    ownerFirstName = fName,
+                                    ownerLastName = lName,
+                                    ownerEmail = mail,
+                                    ownerPhone = phone
+                                )
 
-                    // Owner's Details Section
-                    Text(
-                        text = "Owner's Details",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2D3E2E),
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                                firestore.collection("machines")
+                                    .add(machine)
+                                    .addOnSuccessListener {
+                                        Log.d("AddMachine", "Machine saved to Firestore")
+                                        Toast.makeText(context, "Machine added successfully", Toast.LENGTH_SHORT).show()
+                                        onSubmitSuccess() // ✅ Only navigate after success
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("AddMachine", "Failed to save machine: ${e.message}")
+                                        Toast.makeText(context, "Failed to save machine", Toast.LENGTH_SHORT).show()
+                                    }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "First Name",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = firstName,
-                                onValueChange = { firstName = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                        }
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("AddMachine", "Image upload failed: ${e.message}")
+                                Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
+                            }
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Last Name",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = lastName,
-                                onValueChange = { lastName = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Email",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = email,
-                                onValueChange = { email = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                        }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Phone Number",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2D3E2E),
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                            OutlinedTextField(
-                                value = phoneNumber,
-                                onValueChange = { phoneNumber = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF2D5F3F),
-                                    unfocusedBorderColor = Color(0xFF9E9E9E)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Add Machine Button
-                    Button(
-                        onClick = onSubmitSuccess,
-                        modifier = Modifier.align(Alignment.Start),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2D5F3F)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Add Machine",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D5F3F)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Add Machine", color = Color.White)
                 }
             }
         }
