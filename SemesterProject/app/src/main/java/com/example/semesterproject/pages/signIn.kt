@@ -145,7 +145,7 @@ fun SignInScreen(
                             .width(120.dp)
                     ) {
                         Text(
-                            text = "Sign In",
+                            text = "Sign  In",
                             color = Color.White,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium

@@ -3,6 +3,9 @@ package com.example.semesterproject.pages
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,32 +13,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.example.semesterproject.models.Machine
-// --- Data class ---
-/*data class Machine(
-    val name: String = "",
-    val machineType: String = "",
-    val description: String = "",
-    val pricePerDay: Double = 0.0,
-    val imageUrl: String = "",
-    val ownerFirstName: String = "",
-    val ownerLastName: String = "",
-    val ownerEmail: String = "",
-    val ownerPhone: String = ""
-)*/
+import coil.compose.rememberAsyncImagePainter
 
-// --- Main Composable ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMachinesScreen(
@@ -46,16 +41,24 @@ fun AddMachinesScreen(
     val firestore = FirebaseFirestore.getInstance()
     val storage = FirebaseStorage.getInstance()
 
-    // --- Form state variables ---
+    // Form state variables
     var machineName by remember { mutableStateOf("") }
     var machineType by remember { mutableStateOf("") }
     var machineDescription by remember { mutableStateOf("") }
     var pricePerDay by remember { mutableStateOf("") }
-    var photoPath by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
+    var isUploading by remember { mutableStateOf(false) }
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
 
     Scaffold(
         topBar = {
@@ -74,9 +77,7 @@ fun AddMachinesScreen(
                             ) {
                                 Text(text = "🌾", fontSize = 24.sp)
                             }
-
                             Spacer(modifier = Modifier.height(4.dp))
-
                             Text(
                                 text = "GREENHIRE",
                                 fontSize = 12.sp,
@@ -84,7 +85,6 @@ fun AddMachinesScreen(
                                 color = Color(0xFF2D5F3F),
                                 letterSpacing = 1.sp
                             )
-
                             Text(
                                 text = "RENT. HIRE. FARM.",
                                 fontSize = 6.sp,
@@ -121,74 +121,168 @@ fun AddMachinesScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // --- Form container ---
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFE8F5E9), shape = RoundedCornerShape(16.dp))
                     .padding(20.dp)
             ) {
-                // --- Input fields ---
-                OutlinedTextField(value = machineName, onValueChange = { machineName = it }, label = { Text("Machine Name") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = machineType, onValueChange = { machineType = it }, label = { Text("Machine Type") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = machineDescription, onValueChange = { machineDescription = it }, label = { Text("Machine Description") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = pricePerDay, onValueChange = { pricePerDay = it }, label = { Text("Price per Day") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = photoPath, onValueChange = { photoPath = it }, label = { Text("Photo URI") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = firstName, onValueChange = { firstName = it }, label = { Text("First Name") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Last Name") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = phoneNumber, onValueChange = { phoneNumber = it }, label = { Text("Phone Number") }, modifier = Modifier.fillMaxWidth())
+                // Image picker section
+                OutlinedButton(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White
+                    )
+                ) {
+                    Icon(Icons.Default.PhotoCamera, contentDescription = "Select Photo")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (selectedImageUri != null) "Change Photo" else "Select Photo")
+                }
+
+                // Show selected image preview
+                selectedImageUri?.let { uri ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Image(
+                        painter = rememberAsyncImagePainter(uri),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .background(Color.White, RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- Submit Button ---
+                // Input fields
+                OutlinedTextField(
+                    value = machineName,
+                    onValueChange = { machineName = it },
+                    label = { Text("Machine Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = machineType,
+                    onValueChange = { machineType = it },
+                    label = { Text("Machine Type (e.g., Tractor, Harvester)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = machineDescription,
+                    onValueChange = { machineDescription = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = pricePerDay,
+                    onValueChange = { pricePerDay = it },
+                    label = { Text("Price per Day (KSh)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = firstName,
+                    onValueChange = { firstName = it },
+                    label = { Text("First Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = lastName,
+                    onValueChange = { lastName = it },
+                    label = { Text("Last Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("Phone Number") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Submit Button
                 Button(
                     onClick = {
+                        // Validation
                         val name = machineName.trim()
                         val type = machineType.trim()
                         val desc = machineDescription.trim()
                         val priceStr = pricePerDay.trim()
-                        val photo = photoPath.trim()
                         val fName = firstName.trim()
                         val lName = lastName.trim()
                         val mail = email.trim()
                         val phone = phoneNumber.trim()
 
                         if (name.isEmpty() || type.isEmpty() || desc.isEmpty() ||
-                            priceStr.isEmpty() || photo.isEmpty() || fName.isEmpty() ||
-                            lName.isEmpty() || mail.isEmpty() || phone.isEmpty()
+                            priceStr.isEmpty() || fName.isEmpty() || lName.isEmpty() ||
+                            mail.isEmpty() || phone.isEmpty()
                         ) {
                             Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                            Log.d("AddMachine", "Validation failed: Empty fields")
+                            return@Button
+                        }
+
+                        if (selectedImageUri == null) {
+                            Toast.makeText(context, "Please select an image", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
                         val price = priceStr.toDoubleOrNull()
-                        if (price == null) {
+                        if (price == null || price <= 0) {
                             Toast.makeText(context, "Enter a valid price", Toast.LENGTH_SHORT).show()
-                            Log.d("AddMachine", "Validation failed: Price not a number")
                             return@Button
                         }
 
-                        val imageRef = storage.reference.child("machine_images/${System.currentTimeMillis()}.jpg")
-                        val photoUri = Uri.parse(photo)
+                        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(mail).matches()) {
+                            Toast.makeText(context, "Enter a valid email", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        // Start upload
+                        isUploading = true
+                        val imageRef = storage.reference
+                            .child("machine_images/${System.currentTimeMillis()}.jpg")
 
                         Log.d("AddMachine", "Starting image upload...")
 
-                        imageRef.putFile(photoUri)
+                        imageRef.putFile(selectedImageUri!!)
                             .continueWithTask { task ->
-                                if (!task.isSuccessful) task.exception?.let { throw it }
+                                if (!task.isSuccessful) {
+                                    task.exception?.let { throw it }
+                                }
                                 imageRef.downloadUrl
                             }
                             .addOnSuccessListener { downloadUri ->
-                                Log.d("AddMachine", "Image uploaded successfully: $downloadUri")
+                                Log.d("AddMachine", "Image uploaded: $downloadUri")
 
                                 val machine = Machine(
                                     name = name,
@@ -206,26 +300,50 @@ fun AddMachinesScreen(
                                     .add(machine)
                                     .addOnSuccessListener {
                                         Log.d("AddMachine", "Machine saved to Firestore")
-                                        Toast.makeText(context, "Machine added successfully", Toast.LENGTH_SHORT).show()
-                                        onSubmitSuccess() // ✅ Only navigate after success
+                                        isUploading = false
+                                        Toast.makeText(
+                                            context,
+                                            "Machine added successfully!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        onSubmitSuccess()
                                     }
                                     .addOnFailureListener { e ->
-                                        Log.e("AddMachine", "Failed to save machine: ${e.message}")
-                                        Toast.makeText(context, "Failed to save machine", Toast.LENGTH_SHORT).show()
+                                        Log.e("AddMachine", "Firestore error: ${e.message}")
+                                        isUploading = false
+                                        Toast.makeText(
+                                            context,
+                                            "Failed to save: ${e.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
-
                             }
                             .addOnFailureListener { e ->
-                                Log.e("AddMachine", "Image upload failed: ${e.message}")
-                                Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
+                                Log.e("AddMachine", "Upload failed: ${e.message}")
+                                isUploading = false
+                                Toast.makeText(
+                                    context,
+                                    "Upload failed: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
-
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D5F3F)),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = !isUploading
                 ) {
-                    Text("Add Machine", color = Color.White)
+                    if (isUploading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Uploading...", color = Color.White)
+                    } else {
+                        Text("Add Machine.", color = Color.White)
+                    }
                 }
             }
         }
