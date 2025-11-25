@@ -74,6 +74,14 @@ dependencies {
 
 
 
+        // Supabase
+        implementation("io.github.jan-tennert.supabase:postgrest-kt:2.0.0")
+        implementation("io.github.jan-tennert.supabase:storage-kt:2.0.0")
+        implementation("io.ktor:ktor-client-android:2.3.7")
+
+
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

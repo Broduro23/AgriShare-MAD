@@ -25,11 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 import com.example.semesterproject.models.Machine
-import coil.compose.rememberAsyncImagePainter
+import com.example.semesterproject.utils.SupabaseClient
+import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +39,7 @@ fun AddMachinesScreen(
 ) {
     val context = LocalContext.current
     val firestore = FirebaseFirestore.getInstance()
-    val storage = FirebaseStorage.getInstance()
+    val scope = rememberCoroutineScope()
 
     // Form state variables
     var machineName by remember { mutableStateOf("") }
@@ -58,6 +58,33 @@ fun AddMachinesScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
+    }
+
+    // Function to upload image to Supabase
+    suspend fun uploadImageToSupabase(uri: Uri): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bytes = inputStream?.readBytes() ?: return null
+            inputStream?.close()
+
+            val fileName = "machine_${System.currentTimeMillis()}.jpg"
+
+            // Upload to Supabase Storage
+            SupabaseClient.storage
+                .from("machine-images")
+                .upload(fileName, bytes)
+
+            // Get public URL
+            val publicUrl = SupabaseClient.storage
+                .from("machine-images")
+                .publicUrl(fileName)
+
+            Log.d("AddMachine", "Image uploaded to Supabase: $publicUrl")
+            publicUrl
+        } catch (e: Exception) {
+            Log.e("AddMachine", "Supabase upload error: ${e.message}", e)
+            null
+        }
     }
 
     Scaffold(
@@ -267,29 +294,31 @@ fun AddMachinesScreen(
                             return@Button
                         }
 
-                        // Start upload
+                        // Start upload process
                         isUploading = true
-                        val imageRef = storage.reference
-                            .child("machine_images/${System.currentTimeMillis()}.jpg")
 
-                        Log.d("AddMachine", "Starting image upload...")
+                        scope.launch {
+                            try {
+                                // Upload image to Supabase
+                                val imageUrl = uploadImageToSupabase(selectedImageUri!!)
 
-                        imageRef.putFile(selectedImageUri!!)
-                            .continueWithTask { task ->
-                                if (!task.isSuccessful) {
-                                    task.exception?.let { throw it }
+                                if (imageUrl == null) {
+                                    isUploading = false
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to upload image",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    return@launch
                                 }
-                                imageRef.downloadUrl
-                            }
-                            .addOnSuccessListener { downloadUri ->
-                                Log.d("AddMachine", "Image uploaded: $downloadUri")
 
+                                // Save machine data to Firestore with Supabase image URL
                                 val machine = Machine(
                                     name = name,
                                     machineType = type,
                                     description = desc,
                                     pricePerDay = price,
-                                    imageUrl = downloadUri.toString(),
+                                    imageUrl = imageUrl, // Supabase URL
                                     ownerFirstName = fName,
                                     ownerLastName = lName,
                                     ownerEmail = mail,
@@ -317,16 +346,16 @@ fun AddMachinesScreen(
                                             Toast.LENGTH_LONG
                                         ).show()
                                     }
-                            }
-                            .addOnFailureListener { e ->
-                                Log.e("AddMachine", "Upload failed: ${e.message}")
+                            } catch (e: Exception) {
+                                Log.e("AddMachine", "Error: ${e.message}", e)
                                 isUploading = false
                                 Toast.makeText(
                                     context,
-                                    "Upload failed: ${e.message}",
+                                    "Error: ${e.message}",
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D5F3F)),
@@ -342,7 +371,7 @@ fun AddMachinesScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Uploading...", color = Color.White)
                     } else {
-                        Text("Add Machine.", color = Color.White)
+                        Text("Add Machine", color = Color.White)
                     }
                 }
             }
