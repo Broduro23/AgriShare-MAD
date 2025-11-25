@@ -1,6 +1,7 @@
 package com.example.semesterproject.models
 
 data class Machine(
+    val id: String = "",
     val name: String = "",
     val machineType: String = "",
     val description: String = "",

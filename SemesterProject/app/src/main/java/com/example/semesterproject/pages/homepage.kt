@@ -1,5 +1,6 @@
 package com.example.semesterproject.pages
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,33 +12,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.semesterproject.R
+import coil.compose.rememberAsyncImagePainter
 import com.example.semesterproject.components.LogoHeader
+import com.example.semesterproject.models.Machine
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
-
-// Data model for a machine item
-data class Machine(
-    val id: Int,
-    val name: String,
-    val imageRes: Int
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onMachineClick: (Int) -> Unit = {},
+    onMachineClick: (Machine) -> Unit = {},
     onCheckBookingsClick: () -> Unit = {},
     onAddMachinesClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
@@ -45,13 +39,47 @@ fun HomeScreen(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val firestore = FirebaseFirestore.getInstance()
 
-    // Example static machine data (replace with your ViewModel data if needed)
-    val machines = listOf(
-        Machine(1, "Tractor", R.drawable.machine_1),
-        Machine(2, "Plough", R.drawable.machine_2),
-        Machine(3, "Harvester", R.drawable.machine_3)
-    )
+    // State for machines data
+    var machines by remember { mutableStateOf<List<Machine>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Fetch machines from Firestore
+    LaunchedEffect(Unit) {
+        firestore.collection("machines")
+            .get()
+            .addOnSuccessListener { documents ->
+                val machinesList = mutableListOf<Machine>()
+                for (document in documents) {
+                    try {
+                        val machine = Machine(
+                            id = document.id,
+                            name = document.getString("name") ?: "",
+                            machineType = document.getString("machineType") ?: "",
+                            description = document.getString("description") ?: "",
+                            pricePerDay = document.getDouble("pricePerDay") ?: 0.0,
+                            imageUrl = document.getString("imageUrl") ?: "",
+                            ownerFirstName = document.getString("ownerFirstName") ?: "",
+                            ownerLastName = document.getString("ownerLastName") ?: "",
+                            ownerEmail = document.getString("ownerEmail") ?: "",
+                            ownerPhone = document.getString("ownerPhone") ?: ""
+                        )
+                        machinesList.add(machine)
+                    } catch (e: Exception) {
+                        Log.e("HomeScreen", "Error parsing machine: ${e.message}")
+                    }
+                }
+                machines = machinesList
+                isLoading = false
+            }
+            .addOnFailureListener { e ->
+                Log.e("HomeScreen", "Error fetching machines: ${e.message}")
+                errorMessage = e.message
+                isLoading = false
+            }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -98,20 +126,101 @@ fun HomeScreen(
                 )
             }
         ) { paddingValues ->
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.White)
                     .padding(paddingValues)
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-                contentPadding = PaddingValues(vertical = 24.dp)
             ) {
-                items(machines) { machine ->
-                    MachineCard(
-                        machine = machine,
-                        onClick = { onMachineClick(machine.id) }
-                    )
+                when {
+                    isLoading -> {
+                        // Loading State
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFF2D5F3F))
+                        }
+                    }
+
+                    errorMessage != null -> {
+                        // Error State
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "⚠️",
+                                    fontSize = 48.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Error loading machines",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2D3E2E)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = errorMessage ?: "Unknown error",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    machines.isEmpty() -> {
+                        // Empty State
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "🚜",
+                                    fontSize = 64.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No machines available yet",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2D3E2E)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Check back later or add a machine",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        // Machines List
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp)
+                        ) {
+                            items(machines) { machine ->
+                                MachineCard(
+                                    machine = machine,
+                                    onClick = { onMachineClick(machine) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -211,26 +320,74 @@ fun MachineCard(machine: Machine, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column {
-            Image(
-                painter = painterResource(id = machine.imageRes),
-                contentDescription = "${machine.name} image",
+            // Machine Image from Supabase
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-                contentScale = ContentScale.Crop
-            )
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(machine.imageUrl),
+                    contentDescription = machine.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
 
-            Text(
-                text = machine.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF2D3E2E),
-                textAlign = TextAlign.Center,
+                // Machine Type Badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .background(
+                            color = Color(0xFF2D5F3F).copy(alpha = 0.9f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = machine.machineType,
+                        fontSize = 12.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // Machine Details
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-            )
+                    .padding(16.dp)
+            ) {
+                // Machine Name
+                Text(
+                    text = machine.name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2D3E2E),
+                    maxLines = 2
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Price
+                Row(
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "KSh ${String.format("%.2f", machine.pricePerDay)}",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2D5F3F)
+                    )
+                    Text(
+                        text = " / day",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
+            }
         }
     }
 }
