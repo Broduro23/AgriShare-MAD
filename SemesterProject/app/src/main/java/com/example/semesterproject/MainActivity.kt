@@ -34,6 +34,9 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
 
+    // Shared state to pass machine data between screens
+    val selectedMachineForBooking = remember { mutableStateOf<Machine?>(null) }
+
     NavHost(
         navController = navController,
         startDestination = "landing"
@@ -68,7 +71,6 @@ fun AppNavigation() {
                             }
                         }
                     }
-
                 }
             )
         }
@@ -119,8 +121,10 @@ fun AppNavigation() {
                                 selectedMachine.value = null
                             },
                             onBookClick = { machineToBook ->
-                                // Handle booking logic here
-                                // For example: navController.navigate("booking/${machineToBook.id}")
+                                // Store the machine for booking
+                                selectedMachineForBooking.value = machineToBook
+                                // Navigate to booking screen
+                                navController.navigate("booking")
                             }
                         )
                     }
@@ -132,6 +136,24 @@ fun AppNavigation() {
                         onSubmitSuccess = { currentScreen.value = "home" }
                     )
                 }
+            }
+        }
+
+        // Booking Screen
+        composable("booking") {
+            selectedMachineForBooking.value?.let { machine ->
+                MakeBookingScreen(
+                    machine = machine,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onBookingSuccess = {
+                        // Navigate to bookings screen to see the new booking
+                        navController.navigate("bookings") {
+                            popUpTo("home") { inclusive = false }
+                        }
+                    }
+                )
             }
         }
 
@@ -149,7 +171,7 @@ fun AppNavigation() {
             )
         }
 
-        // About Page (empty placeholder for now)
+        // About Page
         composable("about") {
             AboutScreen(
                 onBackClick = { navController.popBackStack() }
