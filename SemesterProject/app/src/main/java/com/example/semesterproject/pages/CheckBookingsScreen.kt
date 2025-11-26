@@ -31,7 +31,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckBookingsScreen(
-    role: String, // "Owner" or "Client"
+    role: String,
     viewModel: BookingViewModel = viewModel(),
     onBackClick: () -> Unit
 ) {

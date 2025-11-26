@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -39,6 +38,9 @@ fun AppNavigation() {
     // Shared state to pass machine data between screens
     val selectedMachineForBooking = remember { mutableStateOf<Machine?>(null) }
 
+    // --- FIX 1: Add this variable to store the role after login ---
+    val userRole = remember { mutableStateOf("Client") }
+
     NavHost(
         navController = navController,
         startDestination = "splash"
@@ -55,19 +57,18 @@ fun AppNavigation() {
         composable("signin") {
             SignInScreen(
                 onBackClick = { navController.popBackStack() },
-                onLoginSuccess = { role->
+                onLoginSuccess = { role ->
+                    // --- FIX 2: Save the role here so we can use it later ---
+                    userRole.value = role
+
                     when(role){
                         "Owner" -> {
                             navController.navigate("home"){
                                 popUpTo(route= "landing"){inclusive = false}
                             }
                         }
-                        "Operator"->{
-                            navController.navigate(route= "home"){
-                                popUpTo(route = "landing"){inclusive = false}
-                            }
-                        }
-                        else->{
+                        // Removed redundant case logic for clarity, navigating everyone to home
+                        else -> {
                             navController.navigate("home") {
                                 popUpTo("landing") { inclusive = false }
                             }
@@ -101,12 +102,13 @@ fun AppNavigation() {
                             selectedMachine.value = machine
                             currentScreen.value = "detail"
                         },
-                        onCheckBookingsClick = { navController.navigate("check_bookings/{role}") },
+                        // --- FIX 3: Use the variable '${userRole.value}' instead of the literal '{role}' ---
+                        onCheckBookingsClick = { navController.navigate("check_bookings/${userRole.value}") },
                         onAddMachinesClick = {
                             currentScreen.value = "add"
                         },
-                        onOwnerMachinesClick = { navController.navigate("owner_machines") },
-                        onProfileClick = {navController.navigate("profile")},
+                        // Removed onOwnerMachinesClick as it's covered by Profile or CheckBookings
+                        onProfileClick = { navController.navigate("profile") },
                         onAboutClick = { navController.navigate("about") },
                         onLogoutClick = {
                             FirebaseAuth.getInstance().signOut()
@@ -153,8 +155,8 @@ fun AppNavigation() {
                         navController.popBackStack()
                     },
                     onBookingSuccess = {
-                        // Navigate to bookings screen to see the new booking
-                        navController.navigate("check_bookings/{role}") {
+                        // --- FIX 4: Use '${userRole.value}' here too to prevent crash on 'Pay Now' ---
+                        navController.navigate("check_bookings/${userRole.value}") {
                             popUpTo("home") { inclusive = false }
                         }
                     }
@@ -162,14 +164,7 @@ fun AppNavigation() {
             }
         }
 
-        // Submission Success Page
-        composable("submissionSuccess") {
-            SubmissionSuccessScreen(
-                onBackClick = { navController.navigate("home") }
-            )
-        }
-
-        // Submission Success Page
+        // Submission Success Page (Removed duplicate route)
         composable("submissionSuccess") {
             SubmissionSuccessScreen(
                 onBackClick = { navController.navigate("home") }
@@ -189,7 +184,7 @@ fun AppNavigation() {
             )
         }
 
-        // Owner Machines Screen
+        // Profile Screen
         composable("profile") {
             ProfileScreen (
                 onBackClick = { navController.popBackStack() }

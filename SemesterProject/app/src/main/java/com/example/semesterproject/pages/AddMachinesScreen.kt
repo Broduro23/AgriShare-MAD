@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth // Added Import
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.semesterproject.models.Machine
 import com.example.semesterproject.utils.SupabaseClient
@@ -39,6 +40,7 @@ fun AddMachinesScreen(
 ) {
     val context = LocalContext.current
     val firestore = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance() // Initialize Auth
     val scope = rememberCoroutineScope()
 
     // Form state variables
@@ -52,6 +54,35 @@ fun AddMachinesScreen(
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }
+
+    // --- AUTO-POPULATION LOGIC ---
+    LaunchedEffect(Unit) {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // 1. Auto-fill email from Auth if available
+            if (email.isEmpty()) email = currentUser.email ?: ""
+
+            // 2. Fetch Profile Details from Firestore
+            firestore.collection("users").document(currentUser.uid).get()
+                .addOnSuccessListener { document ->
+                    if (document != null && document.exists()) {
+                        // Populate fields if they exist in the document
+                        // Using safe calls (?.) and elvis operator (?:) to keep existing value or empty string
+                        firstName = document.getString("firstName") ?: firstName
+                        lastName = document.getString("lastName") ?: lastName
+                        phoneNumber = document.getString("phoneNumber") ?: phoneNumber
+
+                        // If email wasn't in Auth, try getting it from Firestore document
+                        if (email.isEmpty()) {
+                            email = document.getString("email") ?: ""
+                        }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("AddMachine", "Error fetching user details", e)
+                }
+        }
+    }
 
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -322,7 +353,8 @@ fun AddMachinesScreen(
                                     ownerFirstName = fName,
                                     ownerLastName = lName,
                                     ownerEmail = mail,
-                                    ownerPhone = phone
+                                    ownerPhone = phone,
+                                    ownerId = auth.currentUser?.uid ?: "" // Add ownerId to link machine to user
                                 )
 
                                 firestore.collection("machines")

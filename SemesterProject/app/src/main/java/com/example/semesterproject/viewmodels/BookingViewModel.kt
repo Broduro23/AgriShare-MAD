@@ -1,4 +1,5 @@
 package com.example.semesterproject.viewmodels
+
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -6,31 +7,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.semesterproject.models.Booking
 import com.google.firebase.auth.FirebaseAuth
+//import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+class BookingViewModel : ViewModel() {
 
-class BookingViewModel: ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
     // --- State Variables ---
-    // Holds the list of bookings to display in the UI
     private val _bookings = mutableStateOf<List<Booking>>(emptyList())
     val bookings: State<List<Booking>> = _bookings
 
-    // Loading state for spinners
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
 
-    // Message for Toasts/Snackbars (e.g., "Booking Confirmed")
     private val _message = mutableStateOf<String?>(null)
     val message: State<String?> = _message
 
-    // Flag to trigger navigation on success
     private val _operationSuccess = mutableStateOf(false)
     val operationSuccess: State<Boolean> = _operationSuccess
 
@@ -39,7 +36,7 @@ class BookingViewModel: ViewModel() {
         machineId: String,
         machineName: String,
         machineImageUrl: String,
-        ownerId: String,
+        ownerId: String, // We keep this param but will verify it against the DB
         pricePerDay: Double,
         startDate: Long,
         endDate: Long
@@ -50,7 +47,6 @@ class BookingViewModel: ViewModel() {
             return
         }
 
-        // 1. Validate Dates
         if (startDate >= endDate) {
             _message.value = "Error: End date must be after the start date."
             return
@@ -62,14 +58,19 @@ class BookingViewModel: ViewModel() {
 
         viewModelScope.launch {
             try {
-                // 2. Calculate Total Price
+                // 1. Retrieve correct Owner ID from the Machine document directly
+                // This ensures we don't rely on potentially empty navigation arguments
+                val machineDoc = db.collection("machines").document(machineId).get().await()
+                val verifiedOwnerId = machineDoc.getString("ownerId") ?: ownerId
+
+                if (verifiedOwnerId.isEmpty()) {
+                    throw Exception("Could not find an owner for this machine.")
+                }
+
                 val diff = endDate - startDate
-                // Convert millis to days (ensure at least 1 day is charged)
                 val days = (diff / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(1)
                 val total = days * pricePerDay
 
-                // 3. Create Booking Object
-                // We generate a new ID from Firestore before setting data
                 val newBookingRef = db.collection("bookings").document()
 
                 val booking = Booking(
@@ -79,14 +80,13 @@ class BookingViewModel: ViewModel() {
                     machineImageUrl = machineImageUrl,
                     clientId = currentUser.uid,
                     clientName = currentUser.displayName ?: currentUser.email ?: "Client",
-                    ownerId = ownerId, // Important: Links this booking to the specific machine owner
+                    ownerId = verifiedOwnerId, // Use the verified ID from Firestore
                     startDate = startDate,
                     endDate = endDate,
                     totalPrice = total,
-                    status = "PENDING" // Default status
+                    status = "PENDING"
                 )
 
-                // 4. Save to Firestore
                 newBookingRef.set(booking).await()
 
                 _message.value = "Booking request sent successfully!"
@@ -103,12 +103,10 @@ class BookingViewModel: ViewModel() {
 
     // --- CLIENT LOGIC: Cancel Booking ---
     fun cancelBooking(bookingId: String) {
-        // Only allow cancellation if status is PENDING or APPROVED
         updateBookingStatus(bookingId, "CANCELLED")
     }
 
     // --- OWNER LOGIC: Approve/Reject ---
-
     fun approveBooking(bookingId: String) {
         updateBookingStatus(bookingId, "APPROVED")
     }
@@ -119,33 +117,31 @@ class BookingViewModel: ViewModel() {
 
     // --- SHARED HELPER: Update Status ---
     private fun updateBookingStatus(bookingId: String, newStatus: String) {
-        _isLoading.value = true
         viewModelScope.launch {
             try {
                 db.collection("bookings").document(bookingId)
                     .update("status", newStatus)
                     .await()
 
-                _message.value = "Booking $newStatus"
-
-                // Optimistically update the local list so the UI refreshes instantly
-                // without waiting for a network re-fetch
-                val updatedList = _bookings.value.map {
-                    if (it.id == bookingId) it.copy(status = newStatus) else it
+                // Optimistically update the local list
+                val updatedList = _bookings.value.map { booking ->
+                    if (booking.id == bookingId) {
+                        booking.copy(status = newStatus)
+                    } else {
+                        booking
+                    }
                 }
                 _bookings.value = updatedList
 
             } catch (e: Exception) {
                 _message.value = "Operation failed: ${e.message}"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
     // --- DATA FETCHING ---
 
-    // Used by the Client to see "My Bookings"
+    // For Clients: "My Bookings"
     fun fetchClientBookings() {
         val uid = auth.currentUser?.uid ?: return
         _isLoading.value = true
@@ -156,7 +152,6 @@ class BookingViewModel: ViewModel() {
                     .get()
                     .await()
 
-                // Convert documents to objects and sort by newest first
                 _bookings.value = snapshot.toObjects(Booking::class.java)
                     .sortedByDescending { it.createdAt }
             } catch (e: Exception) {
@@ -167,12 +162,13 @@ class BookingViewModel: ViewModel() {
         }
     }
 
-    // Used by the Owner to see "Requests"
+    // For Owners: "Booking Requests" (The function you asked about)
     fun fetchOwnerBookings() {
         val uid = auth.currentUser?.uid ?: return
         _isLoading.value = true
         viewModelScope.launch {
             try {
+                // This query finds all bookings where YOU are listed as the ownerId
                 val snapshot = db.collection("bookings")
                     .whereEqualTo("ownerId", uid)
                     .get()
@@ -188,10 +184,8 @@ class BookingViewModel: ViewModel() {
         }
     }
 
-    // Reset state when leaving screens
     fun resetState() {
         _message.value = null
         _operationSuccess.value = false
     }
-
 }

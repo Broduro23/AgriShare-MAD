@@ -11,6 +11,6 @@ data class Machine(
     val ownerLastName: String = "",
     val ownerEmail: String = "",
     val ownerPhone: String = "",
-    val ownerId: String = "",  // ADD THIS
+    val ownerId: String = "",
     val createdAt: com.google.firebase.Timestamp? = null  // ADD THIS
 )
