@@ -40,7 +40,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = "landing"
+        startDestination = "splash"
     ) {
         // Landing Page
         composable("landing") {
@@ -175,6 +175,15 @@ fun AppNavigation() {
             CheckBookingsScreen(
                 role = role,
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable("splash") {
+            SplashScreen(
+                onNavigateToSignup = {
+                    navController.navigate("landing") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
             )
         }
 
