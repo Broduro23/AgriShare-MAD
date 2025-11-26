@@ -34,6 +34,7 @@ fun HomeScreen(
     onMachineClick: (Machine) -> Unit = {},
     onCheckBookingsClick: () -> Unit = {},
     onAddMachinesClick: () -> Unit = {},
+    onOwnerMachinesClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
@@ -92,6 +93,10 @@ fun HomeScreen(
                 onAddMachinesClick = {
                     scope.launch { drawerState.close() }
                     onAddMachinesClick()
+                },
+                onOwnerMachinesClick = {
+                    scope.launch { drawerState.close() }
+                    onOwnerMachinesClick()
                 },
                 onAboutClick = {
                     scope.launch { drawerState.close() }
@@ -238,6 +243,7 @@ fun HomeScreen(
 fun DrawerContent(
     onCheckBookingsClick: () -> Unit,
     onAddMachinesClick: () -> Unit,
+    onOwnerMachinesClick: () -> Unit,
     onAboutClick: () -> Unit,
     onCloseClick: () -> Unit,
     onLogoutClick: () -> Unit
@@ -297,6 +303,8 @@ fun DrawerContent(
             DrawerMenuItem("Check Bookings", onClick = onCheckBookingsClick)
             Spacer(modifier = Modifier.height(24.dp))
             DrawerMenuItem("Add Machines", onClick = onAddMachinesClick)
+            Spacer(modifier = Modifier.height(24.dp))
+            DrawerMenuItem("Owner Machines", onClick = onOwnerMachinesClick)
             Spacer(modifier = Modifier.height(24.dp))
             DrawerMenuItem("About", onClick = onAboutClick)
             Spacer(modifier = Modifier.height(35.dp))

@@ -105,6 +105,7 @@ fun AppNavigation() {
                         onAddMachinesClick = {
                             currentScreen.value = "add"
                         },
+                        onOwnerMachinesClick = { navController.navigate("owner_machines") },
                         onAboutClick = { navController.navigate("about") },
                         onLogoutClick = {
                             FirebaseAuth.getInstance().signOut()
@@ -167,6 +168,13 @@ fun AppNavigation() {
             )
         }
 
+        // Submission Success Page
+        composable("submissionSuccess") {
+            SubmissionSuccessScreen(
+                onBackClick = { navController.navigate("home") }
+            )
+        }
+
         // Check Bookings Page
         composable(
             route = "check_bookings/{role}",
@@ -179,6 +187,15 @@ fun AppNavigation() {
                 onBackClick = { navController.popBackStack() }
             )
         }
+
+        // Owner Machines Screen
+        composable("owner_machines") {
+            OwnerMachinesScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Splash Screen
         composable("splash") {
             SplashScreen(
                 onNavigateToSignup = {
