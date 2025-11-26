@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.semesterproject.pages.*
 import com.example.semesterproject.models.Machine
 import androidx.navigation.*
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,8 +107,9 @@ fun AppNavigation() {
                         },
                         onAboutClick = { navController.navigate("about") },
                         onLogoutClick = {
+                            FirebaseAuth.getInstance().signOut()
                             navController.navigate("landing") {
-                                popUpTo("landing") { inclusive = true }
+                                popUpTo("home") { inclusive = true }
                             }
                         }
                     )

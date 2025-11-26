@@ -97,7 +97,14 @@ fun HomeScreen(
                     scope.launch { drawerState.close() }
                     onAboutClick()
                 },
-                onCloseClick = { scope.launch { drawerState.close() } }
+                onCloseClick = {
+                    scope.launch { drawerState.close() }
+                },
+                onLogoutClick = {
+                    scope.launch {drawerState.close()}
+                    onLogoutClick()
+                }
+
             )
         }
     ) {
@@ -232,7 +239,8 @@ fun DrawerContent(
     onCheckBookingsClick: () -> Unit,
     onAddMachinesClick: () -> Unit,
     onAboutClick: () -> Unit,
-    onCloseClick: () -> Unit
+    onCloseClick: () -> Unit,
+    onLogoutClick: () -> Unit
 ) {
     ModalDrawerSheet(
         drawerContainerColor = Color(0xFFE8F5E9),
@@ -291,6 +299,8 @@ fun DrawerContent(
             DrawerMenuItem("Add Machines", onClick = onAddMachinesClick)
             Spacer(modifier = Modifier.height(24.dp))
             DrawerMenuItem("About", onClick = onAboutClick)
+            Spacer(modifier = Modifier.height(35.dp))
+            DrawerMenuItem("Logout", onClick = onLogoutClick)
         }
     }
 }
