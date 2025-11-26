@@ -36,6 +36,7 @@ fun HomeScreen(
     onAddMachinesClick: () -> Unit = {},
     onOwnerMachinesClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
+    onProfileClick: ()->Unit ={},
     onLogoutClick: () -> Unit = {}
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -104,6 +105,10 @@ fun HomeScreen(
                 },
                 onCloseClick = {
                     scope.launch { drawerState.close() }
+                },
+                onProfileClick= {
+                    scope.launch{drawerState.close()}
+                    onProfileClick()
                 },
                 onLogoutClick = {
                     scope.launch {drawerState.close()}
@@ -246,6 +251,7 @@ fun DrawerContent(
     onOwnerMachinesClick: () -> Unit,
     onAboutClick: () -> Unit,
     onCloseClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     ModalDrawerSheet(
@@ -303,10 +309,12 @@ fun DrawerContent(
             DrawerMenuItem("Check Bookings", onClick = onCheckBookingsClick)
             Spacer(modifier = Modifier.height(24.dp))
             DrawerMenuItem("Add Machines", onClick = onAddMachinesClick)
-            Spacer(modifier = Modifier.height(24.dp))
-            DrawerMenuItem("Owner Machines", onClick = onOwnerMachinesClick)
+            //Spacer(modifier = Modifier.height(24.dp))
+            //DrawerMenuItem("Owner Machines", onClick = onOwnerMachinesClick)
             Spacer(modifier = Modifier.height(24.dp))
             DrawerMenuItem("About", onClick = onAboutClick)
+            Spacer(modifier = Modifier.height(24.dp))
+            DrawerMenuItem("Profile", onClick = onProfileClick)
             Spacer(modifier = Modifier.height(35.dp))
             DrawerMenuItem("Logout", onClick = onLogoutClick)
         }

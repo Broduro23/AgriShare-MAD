@@ -106,6 +106,7 @@ fun AppNavigation() {
                             currentScreen.value = "add"
                         },
                         onOwnerMachinesClick = { navController.navigate("owner_machines") },
+                        onProfileClick = {navController.navigate("profile")},
                         onAboutClick = { navController.navigate("about") },
                         onLogoutClick = {
                             FirebaseAuth.getInstance().signOut()
@@ -189,8 +190,8 @@ fun AppNavigation() {
         }
 
         // Owner Machines Screen
-        composable("owner_machines") {
-            OwnerMachinesScreen(
+        composable("profile") {
+            ProfileScreen (
                 onBackClick = { navController.popBackStack() }
             )
         }
