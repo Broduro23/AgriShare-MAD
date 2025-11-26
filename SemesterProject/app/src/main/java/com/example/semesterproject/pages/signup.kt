@@ -76,11 +76,11 @@ fun SignUpScreen(
     if(isSuccess){
         SuccessScreen(
             title = "Account Created!",
-            message = "You will be redirected to the homepage in 10 seconds...",
+            message = "You will be redirected to the homepage in ...",
             buttonText = "Go to Home",
-            autoRedirectMillis = 10000, // 10 seconds
+            autoRedirectMillis = 1000,
             onDoneClick = {
-                onSuccess() // This triggers the navigation
+                onSuccess()
                 viewModel.resetState() // Reset the viewmodel state
             }
         )

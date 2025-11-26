@@ -100,7 +100,7 @@ fun AppNavigation() {
                             selectedMachine.value = machine
                             currentScreen.value = "detail"
                         },
-                        onCheckBookingsClick = { navController.navigate("bookings") },
+                        onCheckBookingsClick = { navController.navigate("check_bookings/{role}") },
                         onAddMachinesClick = {
                             currentScreen.value = "add"
                         },
@@ -150,7 +150,7 @@ fun AppNavigation() {
                     },
                     onBookingSuccess = {
                         // Navigate to bookings screen to see the new booking
-                        navController.navigate("bookings") {
+                        navController.navigate("check_bookings/{role}") {
                             popUpTo("home") { inclusive = false }
                         }
                     }
@@ -170,12 +170,10 @@ fun AppNavigation() {
             route = "check_bookings/{role}",
             arguments = listOf(navArgument("role") { type = NavType.StringType })
         ) { backStackEntry ->
-            // 1. Extract the role from the navigation arguments
             val role = backStackEntry.arguments?.getString("role") ?: "Client"
 
-            // 2. Pass the role to the screen
             CheckBookingsScreen(
-                role = role, // <--- THIS FIXES THE ERROR
+                role = role,
                 onBackClick = { navController.popBackStack() }
             )
         }

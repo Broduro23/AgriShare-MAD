@@ -33,6 +33,7 @@ class AuthViewModel : ViewModel() {
     // --- Main Signup Function ---
     // Matches the fields in your SignUpScreen
     fun signUp(
+
         firstName: String,
         lastName: String,
         email: String,
@@ -77,7 +78,7 @@ class AuthViewModel : ViewModel() {
                     val newUser = Users(
                         uid = firebaseUser.uid,
                         email = email,
-                        firstname = firstName,
+                        firstName = firstName,
                         lastName = lastName,
                         phoneNumber = phoneNumber,
                         role = role
