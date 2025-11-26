@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.semesterproject.pages.*
 import com.example.semesterproject.models.Machine
+import androidx.navigation.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -165,8 +166,16 @@ fun AppNavigation() {
         }
 
         // Check Bookings Page
-        composable("bookings") {
+        composable(
+            route = "check_bookings/{role}",
+            arguments = listOf(navArgument("role") { type = NavType.StringType })
+        ) { backStackEntry ->
+            // 1. Extract the role from the navigation arguments
+            val role = backStackEntry.arguments?.getString("role") ?: "Client"
+
+            // 2. Pass the role to the screen
             CheckBookingsScreen(
+                role = role, // <--- THIS FIXES THE ERROR
                 onBackClick = { navController.popBackStack() }
             )
         }
